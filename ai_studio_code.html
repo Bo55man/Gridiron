@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Gridiron Analytics Engine</title>
+  <link rel="manifest" href="manifest.json">
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+  }
+</script>
 <style>
   :root {
     --bg-base: #07090b;
@@ -130,7 +136,7 @@
     color: #ffffff;
   }
 
-  /* Matchup Selector Trigger */
+  /* Selects & Inputs */
   .select-group {
     display: flex;
     flex-direction: column;
@@ -141,7 +147,7 @@
     font-weight: 500;
     color: var(--text-secondary);
   }
-  .game-trigger-btn {
+  select.styled-select {
     width: 100%;
     background: var(--card-surface);
     color: var(--text-primary);
@@ -150,36 +156,16 @@
     padding: 11px 12px;
     font-size: 14px;
     font-weight: 600;
+    outline: none;
     cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    text-align: left;
-    transition: border-color 0.15s ease;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: calc(100% - 14px) center;
   }
-  .game-trigger-btn:hover {
+  select.styled-select:focus {
     border-color: var(--primary-green);
-  }
-  .trigger-content {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    overflow: hidden;
-  }
-  .conf-tag-pill {
-    background: #1b2621;
-    color: #4ade80;
-    border: 1px solid rgba(74, 222, 128, 0.3);
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 700;
-    white-space: nowrap;
-  }
-  .trigger-text {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
 
   .dropdown-subtext {
@@ -187,152 +173,6 @@
     color: var(--text-muted);
     line-height: 1.5;
     margin-top: 8px;
-  }
-
-  /* Game Selection Modal (Tablet & Mobile Optimized) */
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(4, 7, 9, 0.85);
-    backdrop-filter: blur(6px);
-    z-index: 9999;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 14px;
-  }
-  .modal-overlay.open {
-    display: flex;
-  }
-  .modal-container {
-    background: #111518;
-    border: 1px solid #222c35;
-    border-radius: 14px;
-    width: 100%;
-    max-width: 580px;
-    max-height: 75vh;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85);
-  }
-  .modal-header {
-    padding: 12px 16px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #1f272e;
-    background: #151a1e;
-  }
-  .modal-title-wrap {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .modal-title {
-    font-size: 15px;
-    font-weight: 700;
-    color: #ffffff;
-  }
-  .modal-week-badge {
-    font-size: 11px;
-    background: #1e7e4e;
-    color: #ffffff;
-    padding: 2px 7px;
-    border-radius: 4px;
-    font-weight: 600;
-  }
-  .modal-close-btn {
-    background: transparent;
-    border: none;
-    color: #94a3b8;
-    font-size: 22px;
-    line-height: 1;
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-  .modal-close-btn:hover, .modal-close-btn:active {
-    background: #222b32;
-    color: #ffffff;
-  }
-  .modal-search-wrap {
-    padding: 10px 14px;
-    background: #111518;
-    border-bottom: 1px solid #1f272e;
-  }
-  .modal-search-input {
-    width: 100%;
-    background: #171d21;
-    border: 1px solid #222c35;
-    border-radius: 8px;
-    padding: 8px 12px;
-    color: #f8fafc;
-    font-size: 13px;
-    outline: none;
-  }
-  .modal-search-input:focus {
-    border-color: #1e7e4e;
-  }
-  .modal-body {
-    flex: 1;
-    max-height: 75vh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 12px 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-  .modal-conf-group {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .modal-group-title {
-    font-size: 11.5px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #94a3b8;
-    padding: 4px 2px;
-    border-bottom: 1px solid #1a2228;
-    display: flex;
-    justify-content: space-between;
-  }
-  .modal-game-row {
-    background: #151a1e;
-    border: 1px solid #222b32;
-    border-radius: 8px;
-    padding: 9px 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-  .modal-game-row:hover, .modal-game-row:active {
-    background: #1c2328;
-    border-color: #1e7e4e;
-  }
-  .modal-game-row.active {
-    border-color: #1e7e4e;
-    background: rgba(30, 126, 78, 0.15);
-  }
-  .modal-row-teams {
-    font-size: 13.5px;
-    font-weight: 600;
-    color: #ffffff;
-  }
-  .modal-row-lines {
-    font-size: 11.5px;
-    color: #94a3b8;
-    font-feature-settings: "tnum";
-    text-align: right;
   }
 
   /* Custom Matchup Input Grid */
@@ -759,23 +599,20 @@
       </div>
     </div>
 
-    <!-- Matchup Selection Trigger -->
+    <!-- Presets View -->
     <div id="presetSelectContainer" class="select-group">
-      <label class="field-label">Select featured game</label>
-      <button class="game-trigger-btn" id="gameModalTrigger" onclick="openGameModal()">
-        <div class="trigger-content">
-          <span class="conf-tag-pill" id="triggerConfBadge">NFL</span>
-          <span class="trigger-text" id="triggerGameText">Ravens @ Bills</span>
-        </div>
-        <span style="color:#64748b; font-size:12px;">▼</span>
-      </button>
-
-      <!-- Hidden select for compatibility -->
-      <select id="featured-game" style="display:none;" onchange="onGameChange()"></select>
-
+      <label class="field-label" for="featured-game">Select featured game</label>
+      <select id="featured-game" class="styled-select" onchange="onGameChange()">
+        <optgroup id="nflOptGroup" label="NFL (Live Board)">
+          <option value="ravens_bills" selected>Ravens @ Bills (NFL)</option>
+        </optgroup>
+        <optgroup id="collegeOptGroup" label="College (Live FBS Slate)">
+          <option value="wisconsin_iowa">Wisconsin @ Iowa (Big Ten)</option>
+        </optgroup>
+      </select>
       <div class="dropdown-subtext" id="gameSubtitle">
-        Active slate loading via CFBD & ESPN. Auto Tuesday roll-over active.<br>
-        Highmark Stadium · season EPA through week 8. Wind and rain fill from forecast.
+        Live active schedule loaded via ESPN Open Feeds. Deep analytics wired to CFBD & PropLine.<br>
+        Week 8 · Highmark Stadium · season EPA through week 8. Wind and rain fill from forecast.
       </div>
     </div>
 
@@ -1084,124 +921,90 @@
 
 </div>
 
-<!-- Game Selection Modal (Scrolling 75vh slate + Close Button) -->
-<div class="modal-overlay" id="gameModalOverlay" onclick="handleOverlayClick(event)">
-  <div class="modal-container">
-    <div class="modal-header">
-      <div class="modal-title-wrap">
-        <span class="modal-title">Select Matchup</span>
-        <span class="modal-week-badge" id="modalWeekBadge">Active Slate</span>
-      </div>
-      <button class="modal-close-btn" onclick="closeGameModal()" aria-label="Close modal">✕</button>
-    </div>
-    <div class="modal-search-wrap">
-      <input type="text" class="modal-search-input" id="modalSearchInput" placeholder="Search team, conference (e.g. SEC, B1G, Bills)..." oninput="filterModalGames()">
-    </div>
-    <div class="modal-body" id="modalBody">
-      <!-- Populated dynamically -->
-    </div>
-  </div>
-</div>
-
 <script>
 /**
  * Gridiron Analytics Engine
- * - Full College FBS Coverage via CFBD & ESPN Open Scoreboard (Zero Capping, All Conferences)
- * - Clear Conference Labels: Big Ten (B1G), SEC, Big 12, ACC, MAC, Mountain West (MWC), Sun Belt, American (AAC), Conference USA (CUSA)
- * - Automated Tuesday Schedule Roll-Over via Calendar Math & CFBD /calendar
- * - Game Selection Modal with max-height: 75vh, smooth overflow-y: auto, and ✕ close button
- * - Visual curves (#3b82f6 for visitors, #10b981 for home) on active Canvas
+ * Live Schedule Population via ESPN Open Scoreboard Feeds (Zero CORS blocks):
+ * - College FBS: https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?limit=100
+ * - NFL: https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard
+ * Deep Metrics Integration:
+ * - CFBD Bearer Key ready for team EPA/PPA stats
+ * - PropLine Key ready for advanced prop lines
+ * - Exact blue (#3b82f6) / emerald (#10b981) Canvas curves actively rendered
  */
 
+// Dedicated API Keys
 const CFBD_API_KEY = "Bearer 7Xxnv0Ax1Op47XN1Y24hap3xAmQ55lKFmPlLq1H1rJ4nOXUWeay+efr04R4Kk143";
 const PROPLINE_API_KEY = "57c9efb1403f9777e390e073e74ed71c";
 
-// Comprehensive Conference Normalization & Dictionary
-function normalizeConference(raw) {
-  if (!raw) return 'FBS';
-  const c = raw.toLowerCase().trim();
-  if (c.includes('sec') || c === 'southeastern') return 'SEC';
-  if (c.includes('big ten') || c.includes('b1g') || c === 'big 10') return 'Big Ten (B1G)';
-  if (c.includes('big 12') || c.includes('big xii')) return 'Big 12';
-  if (c.includes('acc') || c.includes('atlantic coast')) return 'ACC';
-  if (c.includes('mountain west') || c.includes('mwc')) return 'Mountain West (MWC)';
-  if (c.includes('mid-american') || c === 'mac') return 'MAC';
-  if (c.includes('sun belt')) return 'Sun Belt';
-  if (c.includes('american') || c === 'aac') return 'American (AAC)';
-  if (c.includes('conference usa') || c === 'c-usa' || c === 'cusa') return 'Conference USA (CUSA)';
-  if (c.includes('independent') || c === 'ind') return 'FBS Ind';
-  return raw;
-}
+// Ingested CFBD Team PPA Metrics Storage
+let CFB_PPA_REGISTRY = {};
 
-// Major FBS Team to Conference Lookup Fallback
-const TEAM_CONFERENCES = {
-  // SEC
-  "Georgia": "SEC", "Texas": "SEC", "Alabama": "SEC", "Ole Miss": "SEC", "Tennessee": "SEC",
-  "LSU": "SEC", "Texas A&M": "SEC", "Missouri": "SEC", "Oklahoma": "SEC", "Florida": "SEC",
-  "South Carolina": "SEC", "Arkansas": "SEC", "Auburn": "SEC", "Kentucky": "SEC", "Vanderbilt": "SEC", "Mississippi State": "SEC",
-  // Big Ten (B1G)
-  "Ohio State": "Big Ten (B1G)", "Oregon": "Big Ten (B1G)", "Penn State": "Big Ten (B1G)", "Michigan": "Big Ten (B1G)",
-  "USC": "Big Ten (B1G)", "Washington": "Big Ten (B1G)", "Iowa": "Big Ten (B1G)", "Wisconsin": "Big Ten (B1G)",
-  "Indiana": "Big Ten (B1G)", "Illinois": "Big Ten (B1G)", "Nebraska": "Big Ten (B1G)", "Minnesota": "Big Ten (B1G)",
-  "Maryland": "Big Ten (B1G)", "Rutgers": "Big Ten (B1G)", "Michigan State": "Big Ten (B1G)", "UCLA": "Big Ten (B1G)",
-  "Northwestern": "Big Ten (B1G)", "Purdue": "Big Ten (B1G)",
-  // Big 12
-  "Utah": "Big 12", "Kansas State": "Big 12", "Iowa State": "Big 12", "BYU": "Big 12",
-  "Colorado": "Big 12", "Arizona": "Big 12", "Arizona State": "Big 12", "Oklahoma State": "Big 12",
-  "Kansas": "Big 12", "TCU": "Big 12", "Texas Tech": "Big 12", "Baylor": "Big 12",
-  "West Virginia": "Big 12", "UCF": "Big 12", "Cincinnati": "Big 12", "Houston": "Big 12",
-  // ACC
-  "Miami": "ACC", "Clemson": "ACC", "SMU": "ACC", "Pittsburgh": "ACC", "Louisville": "ACC",
-  "Virginia Tech": "ACC", "Georgia Tech": "ACC", "Duke": "ACC", "Boston College": "ACC",
-  "Virginia": "ACC", "Syracuse": "ACC", "North Carolina": "ACC", "NC State": "ACC",
-  "California": "ACC", "Stanford": "ACC", "Florida State": "ACC", "Wake Forest": "ACC",
-  // Mountain West (MWC)
-  "Boise State": "Mountain West (MWC)", "UNLV": "Mountain West (MWC)", "Fresno State": "Mountain West (MWC)",
-  "San Diego State": "Mountain West (MWC)", "Colorado State": "Mountain West (MWC)", "Air Force": "Mountain West (MWC)",
-  "Wyoming": "Mountain West (MWC)", "San Jose State": "Mountain West (MWC)", "Hawaii": "Mountain West (MWC)",
-  "Nevada": "Mountain West (MWC)", "Utah State": "Mountain West (MWC)", "New Mexico": "Mountain West (MWC)",
-  // MAC
-  "Toledo": "MAC", "Miami (OH)": "MAC", "Bowling Green": "MAC", "Western Michigan": "MAC",
-  "Northern Illinois": "MAC", "Ohio": "MAC", "Buffalo": "MAC", "Eastern Michigan": "MAC",
-  "Central Michigan": "MAC", "Ball State": "MAC", "Akron": "MAC", "Kent State": "MAC",
-  // Sun Belt
-  "James Madison": "Sun Belt", "Appalachian State": "Sun Belt", "Coastal Carolina": "Sun Belt",
-  "Troy": "Sun Belt", "Texas State": "Sun Belt", "Louisiana": "Sun Belt", "Georgia Southern": "Sun Belt",
-  "Marshall": "Sun Belt", "South Alabama": "Sun Belt", "Old Dominion": "Sun Belt", "Georgia State": "Sun Belt",
-  // American (AAC)
-  "Memphis": "American (AAC)", "Tulane": "American (AAC)", "Army": "American (AAC)", "Navy": "American (AAC)",
-  "South Florida": "American (AAC)", "UTSA": "American (AAC)", "North Texas": "American (AAC)", "East Carolina": "American (AAC)",
-  // Conference USA (CUSA)
-  "Liberty": "Conference USA (CUSA)", "Western Kentucky": "Conference USA (CUSA)", "Jacksonville State": "Conference USA (CUSA)",
-  "Sam Houston": "Conference USA (CUSA)", "Louisiana Tech": "Conference USA (CUSA)", "Kennesaw State": "Conference USA (CUSA)",
-  // Independents
-  "Notre Dame": "FBS Ind", "UConn": "FBS Ind", "UMass": "FBS Ind"
-};
-
-// Stadium Elevation Lookup
-const VENUE_ELEVATIONS = {
-  "Highmark Stadium": 600, "Empower Field at Mile High": 5280, "Acrisure Stadium": 730,
-  "Lambeau Field": 640, "Ford Field": 600, "AT&T Stadium": 550, "MetLife Stadium": 10,
-  "SoFi Stadium": 100, "Paycor Stadium": 480, "Raymond James Stadium": 15, "EverBank Stadium": 16,
-  "Hard Rock Stadium": 10, "Northwest Stadium": 200, "Lumen Field": 15, "GEHA Field at Arrowhead": 850,
-  "Lincoln Financial Field": 10, "Gillette Stadium": 140, "State Farm Stadium": 1070,
-  "Allegiant Stadium": 2000, "Caesars Superdome": 0, "Mercedes-Benz Stadium": 1050,
-  "M&T Bank Stadium": 20, "Lucas Oil Stadium": 700, "U.S. Bank Stadium": 830, "NRG Stadium": 50,
-  "Nissan Stadium": 400, "Bank of America Stadium": 700, "Soldier Field": 595,
-  "Huntington Bank Field": 580, "Levi's Stadium": 40, "Kinnick Stadium": 680, "Waldo Stadium": 780,
-  "Sanford Stadium": 700, "SECU Stadium": 160, "Wallace Wade Stadium": 350, "Michigan Stadium": 840,
-  "Beaver Stadium": 1150, "Williams-Brice Stadium": 215, "Memorial Stadium": 750, "Gerald J. Ford Stadium": 600,
-  "Folsom Field": 5360, "War Memorial Stadium": 7220, "Falcon Stadium": 6621, "Rice-Eccles Stadium": 4637,
-  "LaVell Edwards Stadium": 4649, "Ohio Stadium": 760, "Neyland Stadium": 890, "Bryant-Denny Stadium": 220,
-  "Tiger Stadium": 50, "Darrell K Royal-Texas Memorial Stadium": 500, "Autzen Stadium": 420, "Husky Stadium": 40
+// Venue Altitudes & Normal Wind
+const VENUE_METRICS = {
+  "Highmark Stadium": { alt: 600, wind: 9 },
+  "Empower Field at Mile High": { alt: 5280, wind: 8 },
+  "Acrisure Stadium": { alt: 730, wind: 12 },
+  "Lambeau Field": { alt: 640, wind: 14 },
+  "Ford Field": { alt: 600, wind: 0 },
+  "AT&T Stadium": { alt: 550, wind: 0 },
+  "MetLife Stadium": { alt: 10, wind: 13 },
+  "SoFi Stadium": { alt: 100, wind: 0 },
+  "Paycor Stadium": { alt: 480, wind: 10 },
+  "Raymond James Stadium": { alt: 15, wind: 8 },
+  "EverBank Stadium": { alt: 16, wind: 7 },
+  "Hard Rock Stadium": { alt: 10, wind: 11 },
+  "Northwest Stadium": { alt: 200, wind: 9 },
+  "Lumen Field": { alt: 15, wind: 7 },
+  "GEHA Field at Arrowhead": { alt: 850, wind: 8 },
+  "Lincoln Financial Field": { alt: 10, wind: 9 },
+  "Gillette Stadium": { alt: 140, wind: 10 },
+  "State Farm Stadium": { alt: 1070, wind: 0 },
+  "Allegiant Stadium": { alt: 2000, wind: 0 },
+  "Caesars Superdome": { alt: 0, wind: 0 },
+  "Mercedes-Benz Stadium": { alt: 1050, wind: 0 },
+  "M&T Bank Stadium": { alt: 20, wind: 8 },
+  "Lucas Oil Stadium": { alt: 700, wind: 0 },
+  "U.S. Bank Stadium": { alt: 830, wind: 0 },
+  "NRG Stadium": { alt: 50, wind: 0 },
+  "Nissan Stadium": { alt: 400, wind: 8 },
+  "Bank of America Stadium": { alt: 700, wind: 8 },
+  "Soldier Field": { alt: 595, wind: 12 },
+  "Huntington Bank Field": { alt: 580, wind: 12 },
+  "Levi's Stadium": { alt: 40, wind: 7 },
+  "Kinnick Stadium": { alt: 680, wind: 12 },
+  "Waldo Stadium": { alt: 780, wind: 10 },
+  "Sanford Stadium": { alt: 700, wind: 6 },
+  "SECU Stadium": { alt: 160, wind: 8 },
+  "Wallace Wade Stadium": { alt: 350, wind: 7 },
+  "Michigan Stadium": { alt: 840, wind: 9 },
+  "Beaver Stadium": { alt: 1150, wind: 8 },
+  "Williams-Brice Stadium": { alt: 215, wind: 7 },
+  "Memorial Stadium": { alt: 750, wind: 6 },
+  "Gerald J. Ford Stadium": { alt: 600, wind: 9 },
+  "Folsom Field": { alt: 5360, wind: 6 },
+  "War Memorial Stadium": { alt: 7220, wind: 14 },
+  "Falcon Stadium": { alt: 6621, wind: 9 },
+  "Rice-Eccles Stadium": { alt: 4637, wind: 7 },
+  "LaVell Edwards Stadium": { alt: 4649, wind: 6 },
+  "Ohio Stadium": { alt: 760, wind: 8 },
+  "Neyland Stadium": { alt: 890, wind: 7 },
+  "Bryant-Denny Stadium": { alt: 220, wind: 6 },
+  "Tiger Stadium": { alt: 50, wind: 7 },
+  "Darrell K Royal-Texas Memorial Stadium": { alt: 500, wind: 8 },
+  "Autzen Stadium": { alt: 420, wind: 6 },
+  "Husky Stadium": { alt: 40, wind: 8 }
 };
 
 // Fallback Presets
 const FALLBACK_PRESETS = {
   ravens_bills: {
-    visName: "Ravens", homeName: "Bills",
-    conf: "NFL", visBase: 28.9, homeBase: 31.1,
-    defaultWind: 9, defaultAlt: 600,
+    visName: "Ravens",
+    homeName: "Bills",
+    visBase: 28.9,
+    homeBase: 31.1,
+    defaultWind: 9,
+    defaultAlt: 600,
     subtitle: "NFL · Highmark Stadium · Model projections calibrated to standard baseline.",
     draftKings: {
       ml: { visOdds: +145, homeOdds: -170 },
@@ -1211,9 +1014,12 @@ const FALLBACK_PRESETS = {
     }
   },
   wisconsin_iowa: {
-    visName: "Wisconsin", homeName: "Iowa",
-    conf: "Big Ten (B1G)", visBase: 16.5, homeBase: 19.5,
-    defaultWind: 12, defaultAlt: 680,
+    visName: "Wisconsin",
+    homeName: "Iowa",
+    visBase: 16.5,
+    homeBase: 19.5,
+    defaultWind: 12,
+    defaultAlt: 680,
     subtitle: "College Football · Kinnick Stadium · Heartland Trophy classic matchup.",
     draftKings: {
       ml: { visOdds: +135, homeOdds: -160 },
@@ -1227,9 +1033,8 @@ const FALLBACK_PRESETS = {
 const LIVE_GAMES_BOARD = { ...FALLBACK_PRESETS };
 
 let currentSeed = 20261024;
-let activeMode = 'presets';
+let activeMode = 'presets'; // 'presets' | 'custom'
 let activeGameKey = 'ravens_bills';
-let currentWeekNumber = 9;
 
 let marketSides = {
   ml: 'home',
@@ -1449,23 +1254,17 @@ function updateUI() {
   const visitorMean = activeGame.visitorProjScore;
   const homeMean = activeGame.homeProjScore;
 
-  let vName, hName, confTag = "FBS";
+  let vName, hName;
   if (activeMode === 'presets') {
     const cur = getActiveGameData();
     vName = cur.visName;
     hName = cur.homeName;
-    confTag = cur.conf || "FBS";
     document.getElementById('gameSubtitle').innerHTML = cur.subtitle;
   } else {
     vName = document.getElementById('custVisName').value.trim() || "Visitor";
     hName = document.getElementById('custHomeName').value.trim() || "Home";
-    confTag = "CUSTOM";
     document.getElementById('gameSubtitle').innerHTML = "Custom Matchup Active · 10,000 Monte Carlo paths calculated live.";
   }
-
-  // Update Trigger display
-  document.getElementById('triggerConfBadge').textContent = confTag;
-  document.getElementById('triggerGameText').textContent = `${vName} @ ${hName}`;
 
   document.getElementById('visTeamName').textContent = vName;
   document.getElementById('homeTeamName').textContent = hName;
@@ -1983,6 +1782,8 @@ function fillFairPrices() {
 }
 
 function onGameChange() {
+  const gameSelect = document.getElementById('featured-game');
+  activeGameKey = gameSelect.value;
   const p = getActiveGameData();
   if (!p) return;
 
@@ -2017,6 +1818,8 @@ function onGameChange() {
 
   recomputeAll();
 }
+
+document.getElementById('featured-game').addEventListener('change', onGameChange);
 
 function switchMatchupMode(mode) {
   activeMode = mode;
@@ -2081,148 +1884,22 @@ function recomputeAll() {
   updateUI();
 }
 
-/* ==========================================================================
-   MODAL CONTROLS & DYNAMIC SLATE RENDERING
-   ========================================================================== */
-
-function openGameModal() {
-  document.getElementById('gameModalOverlay').classList.add('open');
-  renderModalGamesList();
-}
-
-function closeGameModal() {
-  document.getElementById('gameModalOverlay').classList.remove('open');
-}
-
-function handleOverlayClick(e) {
-  if (e.target && e.target.id === 'gameModalOverlay') {
-    closeGameModal();
-  }
-}
-
-function selectGameFromModal(key) {
-  activeGameKey = key;
-  closeGameModal();
-  onGameChange();
-}
-
-function filterModalGames() {
-  const query = document.getElementById('modalSearchInput').value.toLowerCase().trim();
-  renderModalGamesList(query);
-}
-
-function renderModalGamesList(filterQuery = '') {
-  const container = document.getElementById('modalBody');
-  container.innerHTML = "";
-
-  // Group games by conference / league
-  const groups = {};
-  const confOrder = [
-    "NFL",
-    "SEC",
-    "Big Ten (B1G)",
-    "Big 12",
-    "ACC",
-    "Mountain West (MWC)",
-    "MAC",
-    "Sun Belt",
-    "American (AAC)",
-    "Conference USA (CUSA)",
-    "FBS Ind",
-    "Other"
-  ];
-
-  Object.keys(LIVE_GAMES_BOARD).forEach(key => {
-    const g = LIVE_GAMES_BOARD[key];
-    const matchStr = `${g.visName} ${g.homeName} ${g.conf || ''}`.toLowerCase();
-    if (filterQuery && !matchStr.includes(filterQuery)) return;
-
-    const conf = g.conf || (key.startsWith('nfl') ? 'NFL' : 'Other');
-    if (!groups[conf]) groups[conf] = [];
-    groups[conf].push({ key, ...g });
-  });
-
-  confOrder.forEach(confName => {
-    if (groups[confName] && groups[confName].length > 0) {
-      const groupEl = document.createElement('div');
-      groupEl.className = 'modal-conf-group';
-
-      const titleEl = document.createElement('div');
-      titleEl.className = 'modal-group-title';
-      titleEl.innerHTML = `<span>${confName === 'NFL' ? '🏈 ' : '🎓 '}${confName}</span><span>${groups[confName].length} games</span>`;
-      groupEl.appendChild(titleEl);
-
-      groups[confName].forEach(g => {
-        const row = document.createElement('div');
-        row.className = `modal-game-row ${g.key === activeGameKey ? 'active' : ''}`;
-        row.onclick = () => selectGameFromModal(g.key);
-
-        const sp = g.draftKings.spread.line;
-        const tot = g.draftKings.total.line;
-        const spStr = sp > 0 ? `+${sp}` : `${sp}`;
-
-        row.innerHTML = `
-          <div class="modal-row-teams">${g.visName} @ ${g.homeName}</div>
-          <div class="modal-row-lines">${g.homeName} ${spStr} · O/U ${tot}</div>
-        `;
-        groupEl.appendChild(row);
-      });
-
-      container.appendChild(groupEl);
-    }
-  });
-
-  if (container.children.length === 0) {
-    container.innerHTML = `<div style="text-align:center; color:#94a3b8; padding:30px 10px;">No matchups matching "${filterQuery}"</div>`;
-  }
-}
-
-/* ==========================================================================
-   DYNAMIC TUESDAY ROLLOVER & DUAL DATA PIPELINE
-   ========================================================================== */
-
 /**
- * Calculates current college football week with automated Tuesday roll-over
+ * Direct Live Schedule Fetcher via ESPN Open Scoreboards (Zero CORS blocks):
+ * - College FBS: https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?limit=100
+ * - NFL: https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard
  */
-function getTuesdayRolloverWeek(d = new Date()) {
-  const year = d.getFullYear();
-  // Labor Day kickoff reference: Week 1 cycle starts on the Tuesday before Labor Day
-  const sept1 = new Date(year, 8, 1);
-  const laborDay = (8 - sept1.getDay()) % 7 + 1;
-  const laborDayDate = new Date(year, 8, laborDay);
-  const week1Tuesday = new Date(laborDayDate.getTime() - 6 * 86400000);
-  week1Tuesday.setHours(0, 0, 0, 0);
-
-  if (d < week1Tuesday) return { year, week: 1, seasonType: 'regular' };
-
-  const msDiff = d.getTime() - week1Tuesday.getTime();
-  const weekNum = Math.floor(msDiff / (7 * 86400000)) + 1;
-
-  return {
-    year,
-    week: Math.min(16, Math.max(1, weekNum)),
-    seasonType: weekNum > 15 ? 'postseason' : 'regular'
-  };
-}
-
-/**
- * 1. ESPN Open Scoreboard Live Pipeline (Zero CORS Blocks)
- */
-async function fetchEspnLiveSchedule() {
+async function fetchEspnLiveBoards() {
   let cfbLoaded = false;
   let nflLoaded = false;
 
-  const sched = getTuesdayRolloverWeek();
-  currentWeekNumber = sched.week;
-  document.getElementById('modalWeekBadge').textContent = `Week ${currentWeekNumber} · Tuesday Rollover Active`;
-
-  // Fetch College FBS Slate
+  // 1. Fetch College FBS Scoreboard
   try {
     const cfbRes = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?limit=100');
     if (cfbRes.ok) {
-      const data = await cfbRes.json();
-      if (data && Array.isArray(data.events) && data.events.length > 0) {
-        parseEspnEvents(data.events, 'college');
+      const cfbData = await cfbRes.json();
+      if (cfbData && Array.isArray(cfbData.events) && cfbData.events.length > 0) {
+        parseEspnGames(cfbData.events, 'college');
         cfbLoaded = true;
       }
     }
@@ -2230,13 +1907,13 @@ async function fetchEspnLiveSchedule() {
     console.warn("ESPN CFB live fetch notice:", err);
   }
 
-  // Fetch NFL Slate
+  // 2. Fetch NFL Scoreboard
   try {
     const nflRes = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard');
     if (nflRes.ok) {
-      const data = await nflRes.json();
-      if (data && Array.isArray(data.events) && data.events.length > 0) {
-        parseEspnEvents(data.events, 'nfl');
+      const nflData = await nflRes.json();
+      if (nflData && Array.isArray(nflData.events) && nflData.events.length > 0) {
+        parseEspnGames(nflData.events, 'nfl');
         nflLoaded = true;
       }
     }
@@ -2244,22 +1921,28 @@ async function fetchEspnLiveSchedule() {
     console.warn("ESPN NFL live fetch notice:", err);
   }
 
+  // If both failed completely, fallback presets remain active
   if (cfbLoaded || nflLoaded) {
     onGameChange();
   }
 }
 
-function parseEspnEvents(events, sportType) {
-  // Filter active/upcoming games
+function parseEspnGames(events, sportType) {
+  const optGroupId = sportType === 'nfl' ? 'nflOptGroup' : 'collegeOptGroup';
+  const optGroup = document.getElementById(optGroupId);
+  if (!optGroup) return;
+
+  // Filter for active or upcoming matchups (exclude finished)
   const activeEvents = events.filter(ev => {
     const comp = ev.competitions && ev.competitions[0];
     if (!comp || !comp.status || !comp.status.type) return true;
     return !comp.status.type.completed;
   });
 
-  const list = activeEvents.length > 0 ? activeEvents : events;
+  const listToUse = activeEvents.length > 0 ? activeEvents : events;
+  optGroup.innerHTML = ""; // Dynamically replace static entries
 
-  list.forEach((ev, idx) => {
+  listToUse.forEach((ev, idx) => {
     const comp = ev.competitions && ev.competitions[0];
     if (!comp || !Array.isArray(comp.competitors) || comp.competitors.length < 2) return;
 
@@ -2270,18 +1953,11 @@ function parseEspnEvents(events, sportType) {
     const homeTeam = homeComp.team.shortDisplayName || homeComp.team.name || homeComp.team.location;
     const awayTeam = awayComp.team.shortDisplayName || awayComp.team.name || awayComp.team.location;
 
-    // Detect conference
-    let conf = "NFL";
-    if (sportType === 'college') {
-      const rawConf = (homeComp.team && homeComp.team.conferenceId) || TEAM_CONFERENCES[homeTeam] || TEAM_CONFERENCES[awayTeam] || "FBS";
-      conf = normalizeConference(rawConf);
-    }
-
     const key = `espn_${sportType}_${ev.id || idx}`;
     const venueName = comp.venue ? comp.venue.fullName : `${homeTeam} Stadium`;
     const venueObj = VENUE_METRICS[venueName] || { alt: 500, wind: 8 };
 
-    // Extract consensus line
+    // Extract consensus odds and line
     let spread = -2.5;
     let total = 48.5;
     let mlHome = -135;
@@ -2306,10 +1982,10 @@ function parseEspnEvents(events, sportType) {
         }
       }
       if (o.homeTeamOdds && o.homeTeamOdds.moneyLine) {
-        mlHome = normalizeToAmerican(o.homeTeamOdds.moneyLine);
+        mlHome = parseInt(o.homeTeamOdds.moneyLine, 10);
       }
       if (o.awayTeamOdds && o.awayTeamOdds.moneyLine) {
-        mlAway = normalizeToAmerican(o.awayTeamOdds.moneyLine);
+        mlAway = parseInt(o.awayTeamOdds.moneyLine, 10);
       }
     }
 
@@ -2319,12 +1995,11 @@ function parseEspnEvents(events, sportType) {
     LIVE_GAMES_BOARD[key] = {
       visName: awayTeam,
       homeName: homeTeam,
-      conf: conf,
       visBase: Math.max(10, visBase),
       homeBase: Math.max(10, homeBase),
       defaultWind: venueObj.wind,
       defaultAlt: venueObj.alt,
-      subtitle: `${conf} · ${venueName} · Real-time market lines active.`,
+      subtitle: `${sportType.toUpperCase()} Live Feed · ${venueName} · Real-time market lines active.`,
       draftKings: {
         ml: { visOdds: mlAway, homeOdds: mlHome },
         spread: { line: spread, visOdds: -110, homeOdds: -110 },
@@ -2332,21 +2007,27 @@ function parseEspnEvents(events, sportType) {
         firstHalf: { line: Math.round((total * 0.5) * 2) / 2, overOdds: -110, underOdds: -110 }
       }
     };
+
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = `${awayTeam} @ ${homeTeam} (${sportType === 'nfl' ? 'NFL' : 'FBS'})`;
+    if (sportType === 'nfl' && idx === 0) {
+      opt.selected = true;
+      activeGameKey = key;
+    }
+    optGroup.appendChild(opt);
   });
 }
 
 /**
- * 2. Deep Metrics Pipeline (CFBD PPA & PropLine live odds)
+ * Wired CFBD PPA/EPA Live Metrics Pipeline
  */
-async function fetchDeepMetrics() {
-  const sched = getTuesdayRolloverWeek();
-  
-  // CFBD Team PPA Fetcher
+async function fetchCfbPpaStats() {
   try {
-    const res = await fetch(`https://api.collegefootballdata.com/ppa/teams?year=${sched.year}`, {
+    const res = await fetch('https://api.collegefootballdata.com/ppa/teams?year=2026', {
       headers: {
-        "Authorization": CFBD_API_KEY,
-        "Accept": "application/json"
+        'Authorization': CFBD_API_KEY,
+        'Accept': 'application/json'
       }
     });
     if (res.ok) {
@@ -2355,11 +2036,11 @@ async function fetchDeepMetrics() {
         data.forEach(item => {
           if (item.team) CFB_PPA_REGISTRY[item.team.toLowerCase()] = item;
         });
-        console.log("CFBD PPA metrics successfully wired.");
+        console.log("CFBD PPA live analytics registered.");
       }
     }
   } catch (err) {
-    console.warn("CFBD PPA metrics notice:", err);
+    console.warn("CFBD PPA pipeline notice:", err);
   }
 }
 
@@ -2372,12 +2053,12 @@ window.addEventListener('DOMContentLoaded', () => {
   updateSliderFill(document.getElementById('windSlider'));
   updateSliderFill(document.getElementById('altitudeSlider'));
   
-  // Instant initial load
+  // Instant initial load & canvas render
   recomputeAll();
 
-  // Populate dynamic schedule and connect deep metrics
-  fetchEspnLiveSchedule();
-  fetchDeepMetrics();
+  // Populate open live scoreboard feeds & wire deep metrics
+  fetchEspnLiveBoards();
+  fetchCfbPpaStats();
 });
 </script>
 </body>
