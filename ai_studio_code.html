@@ -1749,7 +1749,9 @@ function fillFairPrices() {
     if (simHomeScores[i] > simVisScores[i]) homeWins++;
     else if (simVisScores[i] > simHomeScores[i]) vWins++;
   }
-  const pML = marketSides.ml === 'home' ? (homeWins / N_SIMS) : (vWins / N_SIMS);
+  // Calculate decisive games only to isolate wins and losses (ignore pushes)
+const decisiveSims = homeWins + vWins;
+const pML = decisiveSims > 0 ? (marketSides.ml === 'home' ? (homeWins / decisiveSims) : (vWins / decisiveSims)) : 0.5;
   document.getElementById('ml-odds-input').value = probToAmerican(pML);
 
   const spLine = parseFloat(document.getElementById('spread-line-input').value) || 0;
