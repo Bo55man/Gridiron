@@ -1756,20 +1756,25 @@ const pML = decisiveSims > 0 ? (marketSides.ml === 'home' ? (homeWins / decisive
 
   const spLine = parseFloat(document.getElementById('spread-line-input').value) || 0;
   let covers = 0;
-  for (let i = 0; i < N_SIMS; i++) {
-    const diff = marketSides.spread === 'home' ? (simHomeScores[i] - simVisScores[i] + spLine) : (simVisScores[i] - simHomeScores[i] + spLine);
-    if (diff > 0) covers++;
-  }
-  document.getElementById('spread-odds-input').value = probToAmerican(covers / N_SIMS);
+let spreadLosses = 0;
+for (let i = 0; i < N_SIMS; i++) {
+  const diff = marketSides.spread === 'home' ? (simHomeScores[i] - simVisScores[i] + spLine) : (simVisScores[i] - simHomeScores[i] + spLine);
+  if (diff > 0) covers++;
+  else if (diff < 0) spreadLosses++;
+}
+const decisiveSpreads = covers + spreadLosses;
+const pSpread = decisiveSpreads > 0 ? (covers / decisiveSpreads) : 0.5;
+document.getElementById('spread-odds-input').value = probToAmerican(pSpread);
 
-  const totLine = parseFloat(document.getElementById('total-line-input').value) || 54.5;
-  let overs = 0, unders = 0;
-  for (let i = 0; i < N_SIMS; i++) {
-    if (simTotals[i] > totLine) overs++;
-    else if (simTotals[i] < totLine) unders++;
-  }
-  const pTot = marketSides.total === 'over' ? (overs / N_SIMS) : (unders / N_SIMS);
-  document.getElementById('total-odds-input').value = probToAmerican(pTot);
+const totLine = parseFloat(document.getElementById('total-line-input').value) || 54.5;
+let overs = 0, unders = 0;
+for (let i = 0; i < N_SIMS; i++) {
+  if (simTotals[i] > totLine) overs++;
+  else if (simTotals[i] < totLine) unders++;
+}
+const decisiveTotals = overs + unders;
+const pTot = decisiveTotals > 0 ? (marketSides.total === 'over' ? (overs / decisiveTotals) : (unders / decisiveTotals)) : 0.5;
+document.getElementById('total-odds-input').value = probToAmerican(pTot);
 
   const fhLine = parseFloat(document.getElementById('1h-line-input').value) || 26.5;
   let fhOvers = 0, fhUnders = 0;
