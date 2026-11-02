@@ -2027,7 +2027,14 @@ function parseEspnGames(events, sportType) {
       activeGameKey = key;
     }
     optGroup.appendChild(opt);
-  });
+  });// Safeguard: Prevent orphan dropdown if no valid games were parsed
+if (optGroup.children.length === 0) {
+  const emptyOpt = document.createElement('option');
+  emptyOpt.textContent = "No active games found";
+  emptyOpt.disabled = true;
+  emptyOpt.selected = true;
+  optGroup.appendChild(emptyOpt);
+}
 }
 
 /**
