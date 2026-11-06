@@ -1324,7 +1324,13 @@ function updateUI() {
   document.getElementById('ml-vis-btn').textContent = vName;
   document.getElementById('ml-home-btn').textContent = hName;
   document.getElementById('spread-vis-btn').textContent = vName;
-  document.getElementById('spread-home-btn').textContent = hName;
+  document.getElementById('spread-home-btn'
+                         ).textContent = hName;
+      const gData = (activeMode === 'presets') ? getActiveGameData() : null;
+    if (gData && gData.draftKings && gData.draftKings.ml) {
+      const initOdds = (marketSides.ml === 'vis') ? gData.draftKings.ml.visOdds : gData.draftKings.ml.homeOdds;
+      document.getElementById('ml-odds-input').value = initOdds > 0 ? `+${initOdds}` : initOdds;
+    }
 
   drawChart();
   updateMarketCalculations();
@@ -1570,7 +1576,8 @@ function selectMarketSide(market, side) {
     if (activeMode === 'presets') {
       const p = getActiveGameData();
       if (p && p.draftKings && p.draftKings.ml) {
-        document.getElementById('ml-odds-input').value = side === 'home' ? p.draftKings.ml.homeOdds : `+${p.draftKings.ml.visOdds}`;
+              const o = side === 'home' ? p.draftKings.ml.homeOdds : p.draftKings.ml.visOdds;
+        document.getElementById('ml-odds-input').value = o > 0 ? `+${o}` : o;
       }
     }
   } else if (market === 'spread') {
