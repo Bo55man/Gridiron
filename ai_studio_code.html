@@ -1999,12 +1999,28 @@ function parseEspnGames(events, sportType) {
           }
         }
       }
-      if (o.homeTeamOdds && o.homeTeamOdds.moneyLine) {
-        mlHome = parseInt(o.homeTeamOdds.moneyLine, 10);
-      }
-      if (o.awayTeamOdds && o.awayTeamOdds.moneyLine) {
-        mlAway = parseInt(o.awayTeamOdds.moneyLine, 10);
-      }
+  if (o.homeTeamOdds && o.homeTeamOdds.moneyLine) {
+    mlHome = parseInt(o.homeTeamOdds.moneyLine, 10);
+  } else if (!isNaN(spread)) {
+    const s = Math.abs(spread);
+    let favMl = -110;
+    if (s <= 1.0) favMl = -115;
+    else if (s <= 2.5) favMl = -135;
+    else if (s <= 3.0) favMl = -165;
+    else if (s <= 3.5) favMl = -180;
+    else if (s <= 4.5) favMl = -220;
+    else if (s <= 6.0) favMl = -260;
+    else if (s <= 7.0) favMl = -320;
+    else if (s <= 9.5) favMl = -450;
+    else favMl = -550;
+
+    const dogMl = Math.round(100 / ((-favMl / (-favMl + 100)) - 0.04) - 100);
+    mlHome = (spread < 0) ? favMl : dogMl;
+    mlAway = (spread < 0) ? dogMl : favMl;
+  }
+  if (o.awayTeamOdds && o.awayTeamOdds.moneyLine) {
+    mlAway = parseInt(o.awayTeamOdds.moneyLine, 10);
+                     }
     }
 
     const homeBase = Math.round(((total - spread) / 2.0) * 10) / 10;
