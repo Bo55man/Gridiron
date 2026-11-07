@@ -1975,55 +1975,58 @@ function parseEspnGames(events, sportType) {
     const venueName = comp.venue ? comp.venue.fullName : `${homeTeam} Stadium`;
     const venueObj = VENUE_METRICS[venueName] || { alt: 500, wind: 8 };
 
-    // Extract consensus odds and line
-    let spread = -2.5;
-    let total = 48.5;
-    let mlHome = -135;
-    let mlAway = +115;
+   // 1. Locate FanDuel provider (ID 37) with fallback to primary bookmaker
+    const o = (comp.odds || []).find(item => 
+      item.provider?.name?.toLowerCase().includes('fanduel') || 
+      item.provider?.id === 37 || 
+      item.provider?.id === '37'
+    ) || (comp.odds && comp.odds[0]) || {};
 
-    if (comp.odds && comp.odds.length > 0) {
-      const o = comp.odds[0];
-      if (o.overUnder !== undefined && !isNaN(parseFloat(o.overUnder))) {
-        total = parseFloat(o.overUnder);
+    // 2. Ingest Spread & Dynamic Spread Juice
+    let spread = -2.5;
+    if (o.spread !== undefined && !isNaN(parseFloat(o.spread))) {
+      spread = parseFloat(o.spread);
+    } else if (o.details) {
+      const parts = o.details.split(' ');
+      const num = parseFloat(parts[parts.length - 1]);
+      if (!isNaN(num)) {
+        spread = (parts[0].toLowerCase().includes(homeTeam.toLowerCase()) || 
+                 (homeComp.team.abbreviation && parts[0].includes(homeComp.team.abbreviation)))
+                 ? -Math.abs(num) : Math.abs(num);
       }
-      if (o.spread !== undefined && !isNaN(parseFloat(o.spread))) {
-        spread = parseFloat(o.spread);
-      } else if (o.details) {
-        const parts = o.details.split(' ');
-        const num = parseFloat(parts[parts.length - 1]);
-        if (!isNaN(num)) {
-          if (parts[0].toLowerCase().includes(homeTeam.toLowerCase()) || (homeComp.team.abbreviation && parts[0].includes(homeComp.team.abbreviation))) {
-            spread = -Math.abs(num);
-          } else {
-            spread = Math.abs(num);
-          }
-        }
-      }
-  if (o.homeTeamOdds && o.homeTeamOdds.moneyLine) {
-    mlHome = parseInt(o.homeTeamOdds.moneyLine, 10);
-  } else if (!isNaN(spread)) {
-    const s = Math.abs(spread);
-        let favMl = -110, dogMl = 100;
-    if (s <= 1.0) { favMl = -115; dogMl = 100; }
-    else if (s <= 2.5) { favMl = -135; dogMl = 115; }
-    else if (s <= 3.0) { favMl = -165; dogMl = 140; }
-    else if (s <= 3.5) { favMl = -180; dogMl = 155; }
-    else if (s <= 4.5) { favMl = -220; dogMl = 185; }
-    else if (s <= 6.0) { favMl = -260; dogMl = 215; }
-    else if (s <= 7.0) { favMl = -320; dogMl = 260; }
-    else if (s <= 9.5) { favMl = -450; dogMl = 360; }
-    else { favMl = -550; dogMl = 425; }
-    mlHome = (spread < 0) ? favMl : dogMl;
-    mlAway = (spread < 0) ? dogMl : favMl;
-  }
-  if (o.awayTeamOdds && o.awayTeamOdds.moneyLine) {
-    mlAway = parseInt(o.awayTeamOdds.moneyLine, 10);
-                     }
     }
+    const spreadHomeOdds = parseInt(o.homeTeamOdds?.spreadOdds, 10) || -110;
+    const spreadVisOdds = parseInt(o.awayTeamOdds?.spreadOdds, 10) || -110;
+
+    // 3. Ingest Total & Juice
+    let total = 48.5;
+    if (o.overUnder !== undefined && !isNaN(parseFloat(o.overUnder))) {
+      total = parseFloat(o.overUnder);
+    }
+    const overOdds = parseInt(o.overOdds, 10) || -110;
+    const underOdds = parseInt(o.underOdds, 10) || -110;
+
+    // 4. Ingest Live Moneyline (Direct > Fallback Ladder)
+    let mlHome = o.homeTeamOdds?.moneyLine !== undefined ? parseInt(o.homeTeamOdds.moneyLine, 10) : null;
+    let mlAway = o.awayTeamOdds?.moneyLine !== undefined ? parseInt(o.awayTeamOdds.moneyLine, 10) : null;
+
+    if (mlHome === null || isNaN(mlHome) || mlAway === null || isNaN(mlAway)) {
+      const s = Math.abs(spread);
+      const fav = s <= 1 ? -115 : s <= 2.5 ? -135 : s <= 3 ? -165 : s <= 3.5 ? -180 : s <= 4.5 ? -220 : s <= 7 ? -320 : -450;
+      const dog = s <= 1 ? 100 : s <= 2.5 ? 115 : s <= 3 ? 140 : s <= 3.5 ? 155 : s <= 4.5 ? 185 : s <= 7 ? 260 : 360;
+      mlHome = spread < 0 ? fav : dog;
+      mlAway = spread < 0 ? dog : fav;
+    }
+
+    // 5. Ingest 1st Half Line and Market Juice
+    const h1Line = o.firstHalf?.overUnder !== undefined ? parseFloat(o.firstHalf.overUnder) : (Math.round((total * 0.5) * 2) / 2);
+    const h1OverOdds = parseInt(o.firstHalf?.overOdds, 10) || -115;
+    const h1UnderOdds = parseInt(o.firstHalf?.underOdds, 10) || -105;
 
     const homeBase = Math.round(((total - spread) / 2.0) * 10) / 10;
     const visBase = Math.round(((total + spread) / 2.0) * 10) / 10;
 
+    // 6. Map to LIVE_GAMES_BOARD
     LIVE_GAMES_BOARD[key] = {
       visName: awayTeam,
       homeName: homeTeam,
@@ -2031,12 +2034,12 @@ function parseEspnGames(events, sportType) {
       homeBase: Math.max(10, homeBase),
       defaultWind: venueObj.wind,
       defaultAlt: venueObj.alt,
-      subtitle: `${sportType.toUpperCase()} Live Feed · ${venueName} · Real-time market lines active.`,
+      subtitle: `${sportType.toUpperCase()} Live Feed · ${venueName} · FanDuel market lines active.`,
       draftKings: {
         ml: { visOdds: mlAway, homeOdds: mlHome },
-        spread: { line: spread, visOdds: -110, homeOdds: -110 },
-        total: { line: total, overOdds: -110, underOdds: -110 },
-        firstHalf: { line: Math.round((total * 0.5) * 2) / 2, overOdds: -110, underOdds: -110 }
+        spread: { line: spread, visOdds: spreadVisOdds, homeOdds: spreadHomeOdds },
+        total: { line: total, overOdds: overOdds, underOdds: underOdds },
+        firstHalf: { line: h1Line, overOdds: h1OverOdds, underOdds: h1UnderOdds }
       }
     };
 
