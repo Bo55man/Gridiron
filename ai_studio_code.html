@@ -1865,24 +1865,32 @@ function onGameChange() {
   updateSliderFill(altSlider);
 
   if (p.draftKings) {
-    if (p.draftKings.ml) {
-      document.getElementById('ml-odds-input').value = marketSides.ml === 'home' ? p.draftKings.ml.homeOdds : `+${p.draftKings.ml.visOdds}`;
-    }
-    if (p.draftKings.spread) {
-      const spreadInput = document.getElementById('spread-line-input');
-      const spreadValue = marketSides.spread === 'home' ? p.draftKings.spread.line : (-p.draftKings.spread.line);
-      spreadInput.value = spreadValue > 0 ? `+${spreadValue}` : `${spreadValue}`;
-      document.getElementById('spread-odds-input').value = marketSides.spread === 'home' ? p.draftKings.spread.homeOdds : p.draftKings.spread.visOdds;
-    }
-    if (p.draftKings.total) {
-      document.getElementById('total-line-input').value = p.draftKings.total.line;
-      document.getElementById('total-odds-input').value = marketSides.total === 'over' ? p.draftKings.total.overOdds : p.draftKings.total.underOdds;
-    }
-    if (p.draftKings.firstHalf) {
-      document.getElementById('1h-line-input').value = p.draftKings.firstHalf.line;
-      document.getElementById('1h-odds-input').value = marketSides['1h'] === 'over' ? p.draftKings.firstHalf.overOdds : p.draftKings.firstHalf.underOdds;
-    }
+    // Spread
+    const sLine = p.draftKings.spread?.line ?? -2.5;
+    document.getElementById('spreadAwayLine').value = sLine > 0 ? `-${sLine}` : `+${Math.abs(sLine)}`;
+    document.getElementById('spreadAwayOdds').value = p.draftKings.spread?.visOdds ?? -110;
+    document.getElementById('spreadHomeLine').value = sLine > 0 ? `+${sLine}` : `${sLine}`;
+    document.getElementById('spreadHomeOdds').value = p.draftKings.spread?.homeOdds ?? -110;
+
+    // Moneyline
+    document.getElementById('mlAwayOdds').value = (p.draftKings.ml?.visOdds > 0) ? `+${p.draftKings.ml.visOdds}` : (p.draftKings.ml?.visOdds ?? '+100');
+    document.getElementById('mlHomeOdds').value = (p.draftKings.ml?.homeOdds > 0) ? `+${p.draftKings.ml.homeOdds}` : (p.draftKings.ml?.homeOdds ?? '-120');
+
+    // Total
+    const tLine = p.draftKings.total?.line ?? 48.5;
+    document.getElementById('totalLineOver').value = tLine;
+    document.getElementById('totalOddsOver').value = p.draftKings.total?.overOdds ?? -110;
+    document.getElementById('totalLineUnder').value = tLine;
+    document.getElementById('totalOddsUnder').value = p.draftKings.total?.underOdds ?? -110;
+
+    // 1st Half
+    const hLine = p.draftKings.firstHalf?.line ?? Math.round((tLine * 0.5) * 2) / 2;
+    document.getElementById('halfTotalLineOver').value = hLine;
+    document.getElementById('halfTotalOddsOver').value = p.draftKings.firstHalf?.overOdds ?? -115;
+    document.getElementById('halfTotalLineUnder').value = hLine;
+    document.getElementById('halfTotalOddsUnder').value = p.draftKings.firstHalf?.underOdds ?? -105;
   }
+  
 
   recomputeAll();
 }
