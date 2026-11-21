@@ -1757,6 +1757,98 @@ document.getElementById('total-odds-input').value = probToAmerican(pTot);
   updateMarketCalculations();
 }
 
+  async function syncMarketLines() {
+  const syncBtn = document.getElementById('syncOddsBtn');
+  const selectedBook = document.getElementById('sportsbookSelect').value;
+  const gameData = getActiveGameData();
+
+  if (!gameData) {
+    alert("Please select a game first.");
+    return;
+  }
+
+  syncBtn.innerText = "Syncing...";
+  syncBtn.disabled = true;
+
+  try {
+    const sportKey = (typeof activeGameKey === 'string' && activeGameKey.startsWith('cfb_')) || 
+                     (gameData.subtitle && gameData.subtitle.includes('CFB'))
+      ? 'americanfootball_ncaaf'
+      : 'americanfootball_nfl';
+
+    const url = `https://api.the-odds-api.com/v4/sports/${sportKey}/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=h2h,spreads,totals&bookmakers=${selectedBook}`;
+    
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    const data = await res.json();
+
+    const matched = data.find(g => 
+      (g.home_team.toLowerCase().includes(gameData.homeName.toLowerCase()) || gameData.homeName.toLowerCase().includes(g.home_team.toLowerCase())) ||
+      (g.away_team.toLowerCase().includes(gameData.visName.toLowerCase()) || gameData.visName.toLowerCase().includes(g.away_team.toLowerCase()))
+    );
+
+    if (!matched) {
+      alert(`No active lines found on ${selectedBook.toUpperCase()} for this matchup. You can still enter lines manually.`);
+      return;
+    }
+
+    const book = matched.bookmakers.find(b => b.key === selectedBook) || matched.bookmakers[0];
+    if (!book) {
+      alert(`Line not available on ${selectedBook.toUpperCase()}.`);
+      return;
+    }
+
+    // Moneyline
+    const h2hMarket = book.markets.find(m => m.key === 'h2h');
+    let mlHome = null, mlAway = null;
+    if (h2hMarket) {
+      const hOut = h2hMarket.outcomes.find(o => o.name === matched.home_team);
+      const aOut = h2hMarket.outcomes.find(o => o.name === matched.away_team);
+      if (hOut) mlHome = hOut.price;
+      if (aOut) mlAway = aOut.price;
+    }
+
+    // Spreads
+    const spreadMarket = book.markets.find(m => m.key === 'spreads');
+    let homeSpread = 0, homeSpreadOdds = -110, awaySpreadOdds = -110;
+    if (spreadMarket) {
+      const hOut = spreadMarket.outcomes.find(o => o.name === matched.home_team);
+      const aOut = spreadMarket.outcomes.find(o => o.name === matched.away_team);
+      if (hOut) { homeSpread = hOut.point; homeSpreadOdds = hOut.price; }
+      if (aOut) { awaySpreadOdds = aOut.price; }
+    }
+
+    // Totals
+    const totalMarket = book.markets.find(m => m.key === 'totals');
+    let gameTotal = 46.5, overOdds = -110, underOdds = -110;
+    if (totalMarket) {
+      const overOut = totalMarket.outcomes.find(o => o.name === 'Over');
+      const underOut = totalMarket.outcomes.find(o => o.name === 'Under');
+      if (overOut) { gameTotal = overOut.point; overOdds = overOut.price; }
+      if (underOut) { underOdds = underOut.price; }
+    }
+
+    LIVE_GAMES_BOARD[activeGameKey].draftKings = {
+      ml: { visOdds: mlAway, homeOdds: mlHome },
+      spread: { line: homeSpread, visOdds: awaySpreadOdds, homeOdds: homeSpreadOdds },
+      total: { line: gameTotal, overOdds: overOdds, underOdds: underOdds },
+      firstHalf: LIVE_GAMES_BOARD[activeGameKey].draftKings?.firstHalf || {
+        line: Math.round((gameTotal * 0.5) * 2) / 2,
+        overOdds: -115,
+        underOdds: -105
+      }
+    };
+
+    onGameChange();
+
+  } catch (err) {
+    console.error("Odds API Error:", err);
+    alert("Odds sync failed. Check connection or API quota.");
+  } finally {
+    syncBtn.innerText = "Sync";
+    syncBtn.disabled = false;
+   }
+  }
 function onGameChange() {
   const gameSelect = document.getElementById('featured-game');
   activeGameKey = gameSelect.value;
