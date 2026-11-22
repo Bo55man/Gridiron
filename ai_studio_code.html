@@ -1714,11 +1714,15 @@ function updateMarketCalculations() {
 
     const sportKey = isCollege ? 'americanfootball_ncaaf' : 'americanfootball_nfl';
 
-    const rawUrl = `https://api.the-odds-api.com/v4/sports/${sportKey}/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=h2h,spreads,totals&oddsFormat=american&bookmakers=${selectedBook}`;
-    const url = `https://corsproxy.io/?${encodeURIComponent(rawUrl)}`;
+    // Direct call to your Cloudflare Worker proxy
+    const workerUrl = `https://gridiron-odds-proxy.rpdsr66.workers.dev?sport=${sportKey}&bookmakers=${selectedBook}`;
 
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    const res = await fetch(workerUrl);
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(`HTTP ${res.status}: ${errBody.error || res.statusText || 'Fetch failed'}`);
+    }
+
     const data = await res.json();
 
     const matched = data.find(g =>
@@ -1727,7 +1731,7 @@ function updateMarketCalculations() {
     );
 
     if (!matched) {
-      alert(`No active lines found on ${selectedBook.toUpperCase()} for this matchup. You can still enter lines manually.`);
+      alert(`No active lines found on ${selectedBook.toUpperCase()} for ${gameData.visName} @ ${gameData.homeName}. You can still enter lines manually.`);
       return;
     }
 
@@ -1781,12 +1785,13 @@ function updateMarketCalculations() {
     onGameChange();
   } catch (err) {
     console.error("Odds API Error:", err);
-    alert("Odds sync failed. Check connection or API quota.");
+    alert("Sync error details: " + err.message);
   } finally {
     syncBtn.innerText = "Sync";
     syncBtn.disabled = false;
   }
 }
+
 function onGameChange() {
   const gameSelect = document.getElementById('featured-game');
   activeGameKey = gameSelect.value;
