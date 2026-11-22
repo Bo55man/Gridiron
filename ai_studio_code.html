@@ -1221,33 +1221,38 @@ function updateUI() {
     const cur = getActiveGameData();
     vName = cur.visName;
     hName = cur.homeName;
-    document.getElementById('gameSubtitle').innerHTML = cur.subtitle;
+    const subEl = document.getElementById('gameSubtitle');
+    if (subEl) subEl.innerHTML = cur.subtitle;
   } else {
-    vName = document.getElementById('custVisName').value.trim() || "Visitor";
-    hName = document.getElementById('custHomeName').value.trim() || "Home";
-    document.getElementById('gameSubtitle').innerHTML = "Custom Matchup Active · 10,000 Monte Carlo paths calculated live.";
+    vName = document.getElementById('custVisName')?.value.trim() || "Visitor";
+    hName = document.getElementById('custHomeName')?.value.trim() || "Home";
+    const subEl = document.getElementById('gameSubtitle');
+    if (subEl) subEl.innerHTML = "Custom Matchup Active · 10,000 Monte Carlo paths calculated live.";
   }
 
-  document.getElementById('visTeamName').textContent = vName;
-  document.getElementById('homeTeamName').textContent = hName;
-  document.getElementById('legendVisName').textContent = vName;
-  document.getElementById('legendHomeName').textContent = hName;
+  const vTeamEl = document.getElementById('visTeamName'); if (vTeamEl) vTeamEl.textContent = vName;
+  const hTeamEl = document.getElementById('homeTeamName'); if (hTeamEl) hTeamEl.textContent = hName;
+  const legVEl = document.getElementById('legendVisName'); if (legVEl) legVEl.textContent = vName;
+  const legHEl = document.getElementById('legendHomeName'); if (legHEl) legHEl.textContent = hName;
 
-  document.getElementById('visScore').textContent = visitorMean.toFixed(1);
-  document.getElementById('homeScore').textContent = homeMean.toFixed(1);
+  const vScoreEl = document.getElementById('visScore'); if (vScoreEl) vScoreEl.textContent = visitorMean.toFixed(1);
+  const hScoreEl = document.getElementById('homeScore'); if (hScoreEl) hScoreEl.textContent = homeMean.toFixed(1);
 
   const totalExp = visitorMean + homeMean;
   const spreadExp = homeMean - visitorMean;
-  document.getElementById('ouStack').textContent = `O/U ${totalExp.toFixed(1)}`;
-  
-  if (spreadExp >= 0) {
-    document.getElementById('spreadStack').textContent = `${hName} -${spreadExp.toFixed(1)}`;
-  } else {
-    document.getElementById('spreadStack').textContent = `${vName} -${Math.abs(spreadExp).toFixed(1)}`;
+  const ouEl = document.getElementById('ouStack'); if (ouEl) ouEl.textContent = `O/U ${totalExp.toFixed(1)}`;
+
+  const spStackEl = document.getElementById('spreadStack');
+  if (spStackEl) {
+    if (spreadExp >= 0) {
+      spStackEl.textContent = `${hName} -${spreadExp.toFixed(1)}`;
+    } else {
+      spStackEl.textContent = `${vName} -${Math.abs(spreadExp).toFixed(1)}`;
+    }
   }
 
   const halfTot = (visitorMean + homeMean) * 0.495;
-  document.getElementById('halfStack').textContent = `1st half ${halfTot.toFixed(1)}`;
+  const halfEl = document.getElementById('halfStack'); if (halfEl) halfEl.textContent = `1st half ${halfTot.toFixed(1)}`;
 
   const visP10 = Math.round(getPercentile(simVisScores, 0.10));
   const visP90 = Math.round(getPercentile(simVisScores, 0.90));
@@ -1264,36 +1269,29 @@ function updateUI() {
   const visWinPct = (visWins / N_SIMS) * 100;
   const tiePct = (ties / N_SIMS) * 100;
 
-  document.getElementById('visPathRange').innerHTML = `Most paths ${visP10}–${visP90}<br>${visWinPct.toFixed(1)}% win`;
-  document.getElementById('homePathRange').innerHTML = `Most paths ${homeP10}–${homeP90}<br>${homeWinPct.toFixed(1)}% win`;
-  document.getElementById('tieChance').textContent = `${tiePct.toFixed(1)}% tie`;
+  const vRangeEl = document.getElementById('visPathRange');
+  if (vRangeEl) vRangeEl.innerHTML = `Most paths ${visP10}–${visP90}<br>${visWinPct.toFixed(1)}% win`;
+  const hRangeEl = document.getElementById('homePathRange');
+  if (hRangeEl) hRangeEl.innerHTML = `Most paths ${homeP10}–${homeP90}<br>${homeWinPct.toFixed(1)}% win`;
+  const tieEl = document.getElementById('tieChance');
+  if (tieEl) tieEl.textContent = `${tiePct.toFixed(1)}% tie`;
 
-  const currentTotalLine = parseFloat(document.getElementById('total-line-input').value) || 54.5;
+  const parsedTotalLine = parseFloat(document.getElementById('totalLineOver')?.value);
+  const currentTotalLine = isNaN(parsedTotalLine) ? 54.5 : parsedTotalLine;
   let overs = 0;
   for (let i = 0; i < N_SIMS; i++) {
     if (simTotals[i] > currentTotalLine) overs++;
   }
   const overModelP = overs / N_SIMS;
-  const overImpP = americanToImpliedProb(parseOdds(document.getElementById('total-odds-input').value));
-  if (overModelP >= overImpP) {
-    document.getElementById('leanText').textContent = `Lean: Over ${currentTotalLine}.`;
-  } else {
-    document.getElementById('leanText').textContent = `Lean: Under ${currentTotalLine}.`;
+  const overOddsRaw = document.getElementById('totalOddsOver')?.value || "-110";
+  const overImpP = americanToImpliedProb(parseOdds(overOddsRaw));
+  const leanEl = document.getElementById('leanText');
+  if (leanEl) {
+    leanEl.textContent = overModelP >= overImpP ? `Lean: Over ${currentTotalLine}.` : `Lean: Under ${currentTotalLine}.`;
   }
 
-  document.getElementById('ml-vis-btn').textContent = vName;
-  document.getElementById('ml-home-btn').textContent = hName;
-  document.getElementById('spread-vis-btn').textContent = vName;
-  document.getElementById('spread-home-btn'
-                         ).textContent = hName;
-      const gData = (activeMode === 'presets') ? getActiveGameData() : null;
-    if (gData && gData.draftKings && gData.draftKings.ml) {
-      const initOdds = (marketSides.ml === 'vis') ? gData.draftKings.ml.visOdds : gData.draftKings.ml.homeOdds;
-      document.getElementById('ml-odds-input').value = initOdds > 0 ? `+${initOdds}` : initOdds;
-    }
-
-  drawChart();
-  updateMarketCalculations();
+  if (typeof drawChart === 'function') drawChart();
+  if (typeof updateMarketCalculations === 'function') updateMarketCalculations();
 }
 
 /**
@@ -1771,18 +1769,21 @@ document.getElementById('total-odds-input').value = probToAmerican(pTot);
   syncBtn.disabled = true;
 
   try {
-    const sportKey = (typeof activeGameKey === 'string' && activeGameKey.startsWith('cfb_')) || 
-                     (gameData.subtitle && gameData.subtitle.includes('CFB'))
-      ? 'americanfootball_ncaaf'
-      : 'americanfootball_nfl';
+    const isCollege =
+      (typeof activeGameKey === 'string' &&
+        (activeGameKey.startsWith('cfb_') || activeGameKey.startsWith('espn_college_') || activeGameKey === 'wisconsin_iowa')) ||
+      (gameData.subtitle && /cfb|college|fbs/i.test(gameData.subtitle));
 
-    const url = `https://api.the-odds-api.com/v4/sports/${sportKey}/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=h2h,spreads,totals&bookmakers=${selectedBook}`;
-    
+    const sportKey = isCollege ? 'americanfootball_ncaaf' : 'americanfootball_nfl';
+
+    const rawUrl = `https://api.the-odds-api.com/v4/sports/${sportKey}/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=h2h,spreads,totals&oddsFormat=american&bookmakers=${selectedBook}`;
+    const url = `https://corsproxy.io/?${encodeURIComponent(rawUrl)}`;
+
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const data = await res.json();
 
-    const matched = data.find(g => 
+    const matched = data.find(g =>
       (g.home_team.toLowerCase().includes(gameData.homeName.toLowerCase()) || gameData.homeName.toLowerCase().includes(g.home_team.toLowerCase())) ||
       (g.away_team.toLowerCase().includes(gameData.visName.toLowerCase()) || gameData.visName.toLowerCase().includes(g.away_team.toLowerCase()))
     );
@@ -1804,8 +1805,8 @@ document.getElementById('total-odds-input').value = probToAmerican(pTot);
     if (h2hMarket) {
       const hOut = h2hMarket.outcomes.find(o => o.name === matched.home_team);
       const aOut = h2hMarket.outcomes.find(o => o.name === matched.away_team);
-      if (hOut) mlHome = hOut.price;
-      if (aOut) mlAway = aOut.price;
+      if (hOut) mlHome = typeof normalizeToAmerican === 'function' ? normalizeToAmerican(hOut.price) : hOut.price;
+      if (aOut) mlAway = typeof normalizeToAmerican === 'function' ? normalizeToAmerican(aOut.price) : aOut.price;
     }
 
     // Spreads
@@ -1814,8 +1815,8 @@ document.getElementById('total-odds-input').value = probToAmerican(pTot);
     if (spreadMarket) {
       const hOut = spreadMarket.outcomes.find(o => o.name === matched.home_team);
       const aOut = spreadMarket.outcomes.find(o => o.name === matched.away_team);
-      if (hOut) { homeSpread = hOut.point; homeSpreadOdds = hOut.price; }
-      if (aOut) { awaySpreadOdds = aOut.price; }
+      if (hOut) { homeSpread = hOut.point; homeSpreadOdds = typeof normalizeToAmerican === 'function' ? normalizeToAmerican(hOut.price) : hOut.price; }
+      if (aOut) { awaySpreadOdds = typeof normalizeToAmerican === 'function' ? normalizeToAmerican(aOut.price) : aOut.price; }
     }
 
     // Totals
@@ -1824,8 +1825,8 @@ document.getElementById('total-odds-input').value = probToAmerican(pTot);
     if (totalMarket) {
       const overOut = totalMarket.outcomes.find(o => o.name === 'Over');
       const underOut = totalMarket.outcomes.find(o => o.name === 'Under');
-      if (overOut) { gameTotal = overOut.point; overOdds = overOut.price; }
-      if (underOut) { underOdds = underOut.price; }
+      if (overOut) { gameTotal = overOut.point; overOdds = typeof normalizeToAmerican === 'function' ? normalizeToAmerican(overOut.price) : overOut.price; }
+      if (underOut) { underOdds = typeof normalizeToAmerican === 'function' ? normalizeToAmerican(underOut.price) : underOut.price; }
     }
 
     LIVE_GAMES_BOARD[activeGameKey].draftKings = {
@@ -1840,15 +1841,14 @@ document.getElementById('total-odds-input').value = probToAmerican(pTot);
     };
 
     onGameChange();
-
   } catch (err) {
     console.error("Odds API Error:", err);
     alert("Odds sync failed. Check connection or API quota.");
   } finally {
     syncBtn.innerText = "Sync";
     syncBtn.disabled = false;
-   }
   }
+}
 function onGameChange() {
   const gameSelect = document.getElementById('featured-game');
   activeGameKey = gameSelect.value;
