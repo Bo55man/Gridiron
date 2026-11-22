@@ -1584,175 +1584,113 @@ function onCustomOddsChange() {
   updateMarketCalculations();
 }
 
-function updateMarketCalculations() {
-  // 1. Moneyline
-  const mlSide = marketSides.ml;
-  const mlOdds = parseOdds(document.getElementById('ml-odds-input').value);
-  const mlImplied = americanToImpliedProb(mlOdds);
+function renderSideMetrics(prefix, modelProb, odds, pushProb = 0) {
+  const impliedProb = americanToImpliedProb(odds);
+  const b = getNetMultiplier(odds);
+  const lossProb = Math.max(0, 1 - modelProb - pushProb);
 
-  let homeWins = 0, visWins = 0, ties = 0;
+  const edge = (modelProb - impliedProb) * 100;
+  const ev = (modelProb * b - lossProb) * 100;
+  const kelly = calcQuarterKelly(b, modelProb) * 100;
+
+  const probsEl = document.getElementById(`${prefix}Probs`);
+  if (probsEl) probsEl.textContent = `${(impliedProb * 100).toFixed(1)}% / ${(modelProb * 100).toFixed(1)}%`;
+
+  const edgeEl = document.getElementById(`${prefix}Edge`);
+  if (edgeEl) {
+    edgeEl.textContent = `${edge >= 0 ? '+' : ''}${edge.toFixed(1)}%`;
+    edgeEl.style.color = edge > 0 ? '#10b981' : (edge < 0 ? '#ef4444' : '#ffffff');
+  }
+
+  const evEl = document.getElementById(`${prefix}EV`);
+  if (evEl) {
+    evEl.textContent = `${ev >= 0 ? '+$' : '-$'}${Math.abs(ev).toFixed(2)}`;
+    evEl.style.color = ev > 0 ? '#10b981' : (ev < 0 ? '#ef4444' : '#ffffff');
+  }
+
+  const kellyEl = document.getElementById(`${prefix}Kelly`);
+  if (kellyEl) kellyEl.textContent = `${kelly.toFixed(1)}%`;
+}
+
+function updateMarketCalculations() {
+  // 1. Spread (Visitor & Home)
+  const spAwayParsed = parseFloat(document.getElementById('spreadAwayLine')?.value);
+  const spAwayLine = isNaN(spAwayParsed) ? 0 : spAwayParsed;
+  const spAwayOdds = parseOdds(document.getElementById('spreadAwayOdds')?.value || "-110");
+
+  const spHomeParsed = parseFloat(document.getElementById('spreadHomeLine')?.value);
+  const spHomeLine = isNaN(spHomeParsed) ? 0 : spHomeParsed;
+  const spHomeOdds = parseOdds(document.getElementById('spreadHomeOdds')?.value || "-110");
+
+  let spAwayWins = 0, spAwayPushes = 0;
+  let spHomeWins = 0, spHomePushes = 0;
   for (let i = 0; i < N_SIMS; i++) {
-    if (simHomeScores[i] > simVisScores[i]) homeWins++;
-    else if (simVisScores[i] > simHomeScores[i]) visWins++;
+    const awayDiff = simVisScores[i] - simHomeScores[i] + spAwayLine;
+    if (awayDiff > 0) spAwayWins++;
+    else if (awayDiff === 0) spAwayPushes++;
+
+    const homeDiff = simHomeScores[i] - simVisScores[i] + spHomeLine;
+    if (homeDiff > 0) spHomeWins++;
+    else if (homeDiff === 0) spHomePushes++;
+  }
+  renderSideMetrics('spreadAway', spAwayWins / N_SIMS, spAwayOdds, spAwayPushes / N_SIMS);
+  renderSideMetrics('spreadHome', spHomeWins / N_SIMS, spHomeOdds, spHomePushes / N_SIMS);
+
+  // 2. Moneyline (Visitor & Home)
+  const mlAwayOdds = parseOdds(document.getElementById('mlAwayOdds')?.value || "+100");
+  const mlHomeOdds = parseOdds(document.getElementById('mlHomeOdds')?.value || "-120");
+
+  let visWins = 0, homeWins = 0, ties = 0;
+  for (let i = 0; i < N_SIMS; i++) {
+    if (simVisScores[i] > simHomeScores[i]) visWins++;
+    else if (simHomeScores[i] > simVisScores[i]) homeWins++;
     else ties++;
   }
-  const mlModelProb = mlSide === 'home' ? (homeWins / N_SIMS) : (visWins / N_SIMS);
-  const mlB = getNetMultiplier(mlOdds);
-  const mlEdge = (mlModelProb - mlImplied) * 100;
-  const mlEV = (mlModelProb * mlB - (1 - mlModelProb)) * 100;
-  const mlKelly = calcQuarterKelly(mlB, mlModelProb) * 100;
+  const tieProb = ties / N_SIMS;
+  renderSideMetrics('mlAway', visWins / N_SIMS, mlAwayOdds, tieProb);
+  renderSideMetrics('mlHome', homeWins / N_SIMS, mlHomeOdds, tieProb);
 
-  document.getElementById('ml-implied').textContent = `${(mlImplied * 100).toFixed(1)}%`;
-  document.getElementById('ml-model').textContent = `${(mlModelProb * 100).toFixed(1)}%`;
-  
-  const mlEdgeEl = document.getElementById('ml-edge');
-  mlEdgeEl.textContent = `${mlEdge >= 0 ? '+' : ''}${mlEdge.toFixed(1)}%`;
-  mlEdgeEl.style.color = mlEdge > 0 ? '#1e7e4e' : (mlEdge < 0 ? '#ef4444' : '#ffffff');
+  // 3. Total (Over & Under)
+  const totOverParsed = parseFloat(document.getElementById('totalLineOver')?.value);
+  const totOverLine = isNaN(totOverParsed) ? 48.5 : totOverParsed;
+  const totOverOdds = parseOdds(document.getElementById('totalOddsOver')?.value || "-110");
 
-  const mlEVEl = document.getElementById('ml-ev');
-  mlEVEl.textContent = `${mlEV >= 0 ? '+$' : '-$'}${Math.abs(mlEV).toFixed(2)}`;
-  mlEVEl.style.color = mlEV > 0 ? '#1e7e4e' : (mlEV < 0 ? '#ef4444' : '#ffffff');
+  const totUnderParsed = parseFloat(document.getElementById('totalLineUnder')?.value);
+  const totUnderLine = isNaN(totUnderParsed) ? totOverLine : totUnderParsed;
+  const totUnderOdds = parseOdds(document.getElementById('totalOddsUnder')?.value || "-110");
 
-  document.getElementById('ml-kelly').textContent = `${mlKelly.toFixed(1)}%`;
-  document.getElementById('ml-tie-note').textContent = `${((ties / N_SIMS) * 100).toFixed(1)}% of paths tie`;
-
-  // 2. Spread (Threshold: > 0 ? #1e7e4e : (< 0 ? #ef4444 : #ffffff))
-  const spSide = marketSides.spread;
-  const spLine = parseFloat(document.getElementById('spread-line-input').value) || 0;
-  const spOdds = parseOdds(document.getElementById('spread-odds-input').value);
-  const spImplied = americanToImpliedProb(spOdds);
-
-  let spCovers = 0, spPushes = 0;
+  let overs = 0, overPushes = 0;
+  let unders = 0, underPushes = 0;
   for (let i = 0; i < N_SIMS; i++) {
-    const diff = spSide === 'home' ? (simHomeScores[i] - simVisScores[i] + spLine) : (simVisScores[i] - simHomeScores[i] + spLine);
-    if (diff > 0) spCovers++;
-    else if (diff === 0) spPushes++;
+    if (simTotals[i] > totOverLine) overs++;
+    else if (simTotals[i] === totOverLine) overPushes++;
+
+    if (simTotals[i] < totUnderLine) unders++;
+    else if (simTotals[i] === totUnderLine) underPushes++;
   }
-  const spModelProb = spCovers / N_SIMS;
-  const spB = getNetMultiplier(spOdds);
-  const spreadEdge = (spModelProb - spImplied) * 100;
-  const spreadEv = (spModelProb * spB - (1 - spModelProb)) * 100;
-  const spKelly = calcQuarterKelly(spB, spModelProb) * 100;
+  renderSideMetrics('totalOver', overs / N_SIMS, totOverOdds, overPushes / N_SIMS);
+  renderSideMetrics('totalUnder', unders / N_SIMS, totUnderOdds, underPushes / N_SIMS);
 
-  document.getElementById('spread-implied').textContent = `${(spImplied * 100).toFixed(1)}%`;
-  document.getElementById('spread-model').textContent = `${(spModelProb * 100).toFixed(1)}%`;
-  
-  const edgeElement = document.getElementById('spread-edge');
-  edgeElement.textContent = `${spreadEdge >= 0 ? '+' : ''}${spreadEdge.toFixed(1)}%`;
-  edgeElement.style.color = spreadEdge > 0 ? '#1e7e4e' : (spreadEdge < 0 ? '#ef4444' : '#ffffff');
+  // 4. 1st Half Total (Over & Under)
+  const fhOverParsed = parseFloat(document.getElementById('halfTotalLineOver')?.value);
+  const fhOverLine = isNaN(fhOverParsed) ? 24.5 : fhOverParsed;
+  const fhOverOdds = parseOdds(document.getElementById('halfTotalOddsOver')?.value || "-115");
 
-  const evElement = document.getElementById('spread-ev');
-  evElement.textContent = `${spreadEv >= 0 ? '+$' : '-$'}${Math.abs(spreadEv).toFixed(2)}`;
-  evElement.style.color = spreadEv > 0 ? '#1e7e4e' : (spreadEv < 0 ? '#ef4444' : '#ffffff');
+  const fhUnderParsed = parseFloat(document.getElementById('halfTotalLineUnder')?.value);
+  const fhUnderLine = isNaN(fhUnderParsed) ? fhOverLine : fhUnderParsed;
+  const fhUnderOdds = parseOdds(document.getElementById('halfTotalOddsUnder')?.value || "-105");
 
-  document.getElementById('spread-kelly').textContent = `${spKelly.toFixed(1)}%`;
-  document.getElementById('spread-push-note').textContent = `${((spPushes / N_SIMS) * 100).toFixed(1)}% push`;
-
-  // 3. Total
-  const totSide = marketSides.total;
-  const totLine = parseFloat(document.getElementById('total-line-input').value) || 54.5;
-  const totOdds = parseOdds(document.getElementById('total-odds-input').value);
-  const totImplied = americanToImpliedProb(totOdds);
-
-  let totHits = 0;
+  let fhOvers = 0, fhOverPushes = 0;
+  let fhUnders = 0, fhUnderPushes = 0;
   for (let i = 0; i < N_SIMS; i++) {
-    if (totSide === 'over' ? (simTotals[i] > totLine) : (simTotals[i] < totLine)) totHits++;
+    if (simTotals1H[i] > fhOverLine) fhOvers++;
+    else if (simTotals1H[i] === fhOverLine) fhOverPushes++;
+
+    if (simTotals1H[i] < fhUnderLine) fhUnders++;
+    else if (simTotals1H[i] === fhUnderLine) fhUnderPushes++;
   }
-  const totModelProb = totHits / N_SIMS;
-  const totB = getNetMultiplier(totOdds);
-  const totEdge = (totModelProb - totImplied) * 100;
-  const totEV = (totModelProb * totB - (1 - totModelProb)) * 100;
-  const totKelly = calcQuarterKelly(totB, totModelProb) * 100;
-
-  document.getElementById('total-implied').textContent = `${(totImplied * 100).toFixed(1)}%`;
-  document.getElementById('total-model').textContent = `${(totModelProb * 100).toFixed(1)}%`;
-  
-  const totEdgeEl = document.getElementById('total-edge');
-  totEdgeEl.textContent = `${totEdge >= 0 ? '+' : ''}${totEdge.toFixed(1)}%`;
-  totEdgeEl.style.color = totEdge > 0 ? '#1e7e4e' : (totEdge < 0 ? '#ef4444' : '#ffffff');
-
-  const totEVEl = document.getElementById('total-ev');
-  totEVEl.textContent = `${totEV >= 0 ? '+$' : '-$'}${Math.abs(totEV).toFixed(2)}`;
-  totEVEl.style.color = totEV > 0 ? '#1e7e4e' : (totEV < 0 ? '#ef4444' : '#ffffff');
-
-  document.getElementById('total-kelly').textContent = `${totKelly.toFixed(1)}%`;
-
-  // 4. First Half
-  const fhSide = marketSides['1h'];
-  const fhLine = parseFloat(document.getElementById('1h-line-input').value) || 26.5;
-  const fhOdds = parseOdds(document.getElementById('1h-odds-input').value);
-  const fhImplied = americanToImpliedProb(fhOdds);
-
-  let fhHits = 0;
-  for (let i = 0; i < N_SIMS; i++) {
-    if (fhSide === 'over' ? (simTotals1H[i] > fhLine) : (simTotals1H[i] < fhLine)) fhHits++;
-  }
-  const fhModelProb = fhHits / N_SIMS;
-  const fhB = getNetMultiplier(fhOdds);
-  const fhEdge = (fhModelProb - fhImplied) * 100;
-  const fhEV = (fhModelProb * fhB - (1 - fhModelProb)) * 100;
-  const fhKelly = calcQuarterKelly(fhB, fhModelProb) * 100;
-
-  document.getElementById('1h-implied').textContent = `${(fhImplied * 100).toFixed(1)}%`;
-  document.getElementById('1h-model').textContent = `${(fhModelProb * 100).toFixed(1)}%`;
-  
-  const fhEdgeEl = document.getElementById('1h-edge');
-  fhEdgeEl.textContent = `${fhEdge >= 0 ? '+' : ''}${fhEdge.toFixed(1)}%`;
-  fhEdgeEl.style.color = fhEdge > 0 ? '#1e7e4e' : (fhEdge < 0 ? '#ef4444' : '#ffffff');
-
-  const fhEVEl = document.getElementById('1h-ev');
-  fhEVEl.textContent = `${fhEV >= 0 ? '+$' : '-$'}${Math.abs(fhEV).toFixed(2)}`;
-  fhEVEl.style.color = fhEV > 0 ? '#1e7e4e' : (fhEV < 0 ? '#ef4444' : '#ffffff');
-
-  document.getElementById('1h-kelly').textContent = `${fhKelly.toFixed(1)}%`;
-
-  document.getElementById('bottomSummaryText').textContent =
-    `Total is ahead of the book by ${totEdge >= 0 ? '+' : ''}${totEdge.toFixed(1)}%. Quarter-Kelly is ${totKelly.toFixed(1)}% of bankroll.`;
-}
-
-function fillFairPrices() {
-  let hWins = 0, vWins = 0;
-  for (let i = 0; i < N_SIMS; i++) {
-    if (simHomeScores[i] > simVisScores[i]) homeWins++;
-    else if (simVisScores[i] > simHomeScores[i]) vWins++;
-  }
-  // Calculate decisive games only to isolate wins and losses (ignore pushes)
-const decisiveSims = homeWins + vWins;
-const pML = decisiveSims > 0 ? (marketSides.ml === 'home' ? (homeWins / decisiveSims) : (vWins / decisiveSims)) : 0.5;
-  document.getElementById('ml-odds-input').value = probToAmerican(pML);
-
-  const spLine = parseFloat(document.getElementById('spread-line-input').value) || 0;
-  let covers = 0;
-let spreadLosses = 0;
-for (let i = 0; i < N_SIMS; i++) {
-  const diff = marketSides.spread === 'home' ? (simHomeScores[i] - simVisScores[i] + spLine) : (simVisScores[i] - simHomeScores[i] + spLine);
-  if (diff > 0) covers++;
-  else if (diff < 0) spreadLosses++;
-}
-const decisiveSpreads = covers + spreadLosses;
-const pSpread = decisiveSpreads > 0 ? (covers / decisiveSpreads) : 0.5;
-document.getElementById('spread-odds-input').value = probToAmerican(pSpread);
-
-const totLine = parseFloat(document.getElementById('total-line-input').value) || 54.5;
-let overs = 0, unders = 0;
-for (let i = 0; i < N_SIMS; i++) {
-  if (simTotals[i] > totLine) overs++;
-  else if (simTotals[i] < totLine) unders++;
-}
-const decisiveTotals = overs + unders;
-const pTot = decisiveTotals > 0 ? (marketSides.total === 'over' ? (overs / decisiveTotals) : (unders / decisiveTotals)) : 0.5;
-document.getElementById('total-odds-input').value = probToAmerican(pTot);
-
-  const fhLine = parseFloat(document.getElementById('1h-line-input').value) || 26.5;
-  let fhOvers = 0, fhUnders = 0;
-  for (let i = 0; i < N_SIMS; i++) {
-    if (simTotals1H[i] > fhLine) fhOvers++;
-    else if (simTotals1H[i] < fhLine) fhUnders++;
-  }
-  const p1H = marketSides['1h'] === 'over' ? (fhOvers / N_SIMS) : (fhUnders / N_SIMS);
-  document.getElementById('1h-odds-input').value = probToAmerican(p1H);
-
-  updateMarketCalculations();
+  renderSideMetrics('halfOver', fhOvers / N_SIMS, fhOverOdds, fhOverPushes / N_SIMS);
+  renderSideMetrics('halfUnder', fhUnders / N_SIMS, fhUnderOdds, fhUnderPushes / N_SIMS);
 }
 
   async function syncMarketLines() {
