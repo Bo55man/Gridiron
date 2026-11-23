@@ -1693,7 +1693,26 @@ function updateMarketCalculations() {
   renderSideMetrics('halfUnder', fhUnders / N_SIMS, fhUnderOdds, fhUnderPushes / N_SIMS);
 }
 
-  async function syncMarketLines() {
+  // Helper to guarantee standard American Odds formatting (+100, -110)
+function formatAmericanOdds(val) {
+  if (val === null || val === undefined || isNaN(val)) return '-110';
+  const num = parseInt(val, 10);
+  return num > 0 ? `+${num}` : `${num}`;
+}
+
+// Helper to normalize college abbreviations for rock-solid team matching
+function cleanTeamName(name) {
+  if (!name) return '';
+  return name.toLowerCase()
+    .replace(/^e\s+/i, 'eastern ')
+    .replace(/^w\s+/i, 'western ')
+    .replace(/^c\s+/i, 'central ')
+    .replace(/^n\s+/i, 'northern ')
+    .replace(/^s\s+/i, 'southern ')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+async function syncMarketLines() {
   const syncBtn = document.getElementById('syncOddsBtn');
   const selectedBook = document.getElementById('sportsbookSelect').value;
   const gameData = getActiveGameData();
@@ -1714,7 +1733,7 @@ function updateMarketCalculations() {
 
     const sportKey = isCollege ? 'americanfootball_ncaaf' : 'americanfootball_nfl';
 
-    // Direct call to your Cloudflare Worker proxy
+    // Direct call to your private Cloudflare Worker proxy
     const workerUrl = `https://gridiron-odds-proxy.rpdsr66.workers.dev?sport=${sportKey}&bookmakers=${selectedBook}`;
 
     const res = await fetch(workerUrl);
@@ -1725,10 +1744,17 @@ function updateMarketCalculations() {
 
     const data = await res.json();
 
-    const matched = data.find(g =>
-      (g.home_team.toLowerCase().includes(gameData.homeName.toLowerCase()) || gameData.homeName.toLowerCase().includes(g.home_team.toLowerCase())) ||
-      (g.away_team.toLowerCase().includes(gameData.visName.toLowerCase()) || gameData.visName.toLowerCase().includes(g.away_team.toLowerCase()))
-    );
+    const targetHome = cleanTeamName(gameData.homeName);
+    const targetAway = cleanTeamName(gameData.visName);
+
+    // Exact or normalized partial matching for home and away
+    const matched = data.find(g => {
+      const apiHome = cleanTeamName(g.home_team);
+      const apiAway = cleanTeamName(g.away_team);
+      const homeMatch = apiHome.includes(targetHome) || targetHome.includes(apiHome);
+      const awayMatch = apiAway.includes(targetAway) || targetAway.includes(apiAway);
+      return homeMatch || awayMatch;
+    });
 
     if (!matched) {
       alert(`No active lines found on ${selectedBook.toUpperCase()} for ${gameData.visName} @ ${gameData.homeName}. You can still enter lines manually.`);
@@ -1745,40 +1771,54 @@ function updateMarketCalculations() {
     const h2hMarket = book.markets.find(m => m.key === 'h2h');
     let mlHome = null, mlAway = null;
     if (h2hMarket) {
-      const hOut = h2hMarket.outcomes.find(o => o.name === matched.home_team);
-      const aOut = h2hMarket.outcomes.find(o => o.name === matched.away_team);
-      if (hOut) mlHome = typeof normalizeToAmerican === 'function' ? normalizeToAmerican(hOut.price) : hOut.price;
-      if (aOut) mlAway = typeof normalizeToAmerican === 'function' ? normalizeToAmerican(aOut.price) : aOut.price;
+      const hOut = h2hMarket.outcomes.find(o => cleanTeamName(o.name) === cleanTeamName(matched.home_team));
+      const aOut = h2hMarket.outcomes.find(o => cleanTeamName(o.name) === cleanTeamName(matched.away_team));
+      if (hOut) mlHome = formatAmericanOdds(hOut.price);
+      if (aOut) mlAway = formatAmericanOdds(aOut.price);
     }
 
     // Spreads
     const spreadMarket = book.markets.find(m => m.key === 'spreads');
-    let homeSpread = 0, homeSpreadOdds = -110, awaySpreadOdds = -110;
+    let homeSpread = 0, homeSpreadOdds = "-110", awaySpreadOdds = "-110";
     if (spreadMarket) {
-      const hOut = spreadMarket.outcomes.find(o => o.name === matched.home_team);
-      const aOut = spreadMarket.outcomes.find(o => o.name === matched.away_team);
-      if (hOut) { homeSpread = hOut.point; homeSpreadOdds = typeof normalizeToAmerican === 'function' ? normalizeToAmerican(hOut.price) : hOut.price; }
-      if (aOut) { awaySpreadOdds = typeof normalizeToAmerican === 'function' ? normalizeToAmerican(aOut.price) : aOut.price; }
+      const hOut = spreadMarket.outcomes.find(o => cleanTeamName(o.name) === cleanTeamName(matched.home_team));
+      const aOut = spreadMarket.outcomes.find(o => cleanTeamName(o.name) === cleanTeamName(matched.away_team));
+      if (hOut) { 
+        homeSpread = hOut.point; 
+        homeSpreadOdds = formatAmericanOdds(hOut.price); 
+      }
+      if (aOut) { 
+        awaySpreadOdds = formatAmericanOdds(aOut.price); 
+      }
     }
 
     // Totals
     const totalMarket = book.markets.find(m => m.key === 'totals');
-    let gameTotal = 46.5, overOdds = -110, underOdds = -110;
+    let gameTotal = 46.5, overOdds = "-110", underOdds = "-110";
     if (totalMarket) {
-      const overOut = totalMarket.outcomes.find(o => o.name === 'Over');
-      const underOut = totalMarket.outcomes.find(o => o.name === 'Under');
-      if (overOut) { gameTotal = overOut.point; overOdds = typeof normalizeToAmerican === 'function' ? normalizeToAmerican(overOut.price) : overOut.price; }
-      if (underOut) { underOdds = typeof normalizeToAmerican === 'function' ? normalizeToAmerican(underOut.price) : underOut.price; }
+      const overOut = totalMarket.outcomes.find(o => o.name.toLowerCase() === 'over');
+      const underOut = totalMarket.outcomes.find(o => o.name.toLowerCase() === 'under');
+      if (overOut) { 
+        gameTotal = overOut.point; 
+        overOdds = formatAmericanOdds(overOut.price); 
+      }
+      if (underOut) { 
+        underOdds = formatAmericanOdds(underOut.price); 
+      }
     }
+
+    // Preserve existing custom firstHalf lines if user keyed them in, or estimate
+    const existingFirstHalf = LIVE_GAMES_BOARD[activeGameKey]?.draftKings?.firstHalf;
+    const estHalfLine = Math.round((gameTotal * 0.5) * 2) / 2;
 
     LIVE_GAMES_BOARD[activeGameKey].draftKings = {
       ml: { visOdds: mlAway, homeOdds: mlHome },
       spread: { line: homeSpread, visOdds: awaySpreadOdds, homeOdds: homeSpreadOdds },
       total: { line: gameTotal, overOdds: overOdds, underOdds: underOdds },
-      firstHalf: LIVE_GAMES_BOARD[activeGameKey].draftKings?.firstHalf || {
-        line: Math.round((gameTotal * 0.5) * 2) / 2,
-        overOdds: -115,
-        underOdds: -105
+      firstHalf: existingFirstHalf || {
+        line: estHalfLine,
+        overOdds: "-110",
+        underOdds: "-110"
       }
     };
 
