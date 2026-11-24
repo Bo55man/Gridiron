@@ -1695,9 +1695,9 @@ function updateMarketCalculations() {
 
   // Helper to guarantee standard American Odds formatting (+100, -110)
 function formatAmericanOdds(val) {
-  if (val === null || val === undefined || isNaN(val)) return '-110';
-  const num = parseInt(val, 10);
-  return num > 0 ? `+${num}` : `${num}`;
+  if (val === null || val === undefined) return -110;
+  const num = parseInt(String(val).replace(/^\++/, '').trim(), 10);
+  return isNaN(num) ? -110 : num;
 }
 
 // Helper to normalize college abbreviations for rock-solid team matching
