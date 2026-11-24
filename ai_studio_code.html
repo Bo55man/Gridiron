@@ -1807,18 +1807,31 @@ async function syncMarketLines() {
       }
     }
 
-    // Preserve existing custom firstHalf lines if user keyed them in, or estimate
-    const existingFirstHalf = LIVE_GAMES_BOARD[activeGameKey]?.draftKings?.firstHalf;
-    const estHalfLine = Math.round((gameTotal * 0.5) * 2) / 2;
+    // 1st Half Totals (Live API fetch with fallback to 50% estimate)
+    const halfTotalMarket = book.markets.find(m => m.key === 'totals_h1');
+    let halfLine = Math.round((gameTotal * 0.5) * 2) / 2;
+    let halfOverOdds = -110, halfUnderOdds = -110;
+
+    if (halfTotalMarket) {
+      const hOver = halfTotalMarket.outcomes.find(o => o.name.toLowerCase() === 'over');
+      const hUnder = halfTotalMarket.outcomes.find(o => o.name.toLowerCase() === 'under');
+      if (hOver) {
+        halfLine = hOver.point;
+        halfOverOdds = cleanOddsInteger(hOver.price);
+      }
+      if (hUnder) {
+        halfUnderOdds = cleanOddsInteger(hUnder.price);
+      }
+    }
 
     LIVE_GAMES_BOARD[activeGameKey].draftKings = {
       ml: { visOdds: mlAway, homeOdds: mlHome },
       spread: { line: homeSpread, visOdds: awaySpreadOdds, homeOdds: homeSpreadOdds },
       total: { line: gameTotal, overOdds: overOdds, underOdds: underOdds },
-      firstHalf: existingFirstHalf || {
-        line: estHalfLine,
-        overOdds: "-110",
-        underOdds: "-110"
+      firstHalf: {
+        line: halfLine,
+        overOdds: halfOverOdds,
+        underOdds: halfUnderOdds
       }
     };
 
